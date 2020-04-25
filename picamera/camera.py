@@ -641,7 +641,9 @@ class PiCamera(object):
         # Must be done *after* stereo-scopic setting
         self._camera.control.params[
             mmal.MMAL_PARAMETER_CAMERA_NUM] = options['camera_num']
-
+        # Set default annotation version to 4 
+        self._camera.annotate_rev = 4
+        
     def _init_defaults(self):
         """
         Sets most camera settings to various default values.
@@ -665,6 +667,7 @@ class PiCamera(object):
         self.rotation = 0
         self.hflip = self.vflip = False
         self.zoom = (0.0, 0.0, 1.0, 1.0)
+        
 
     def _init_splitter(self):
         """
@@ -3990,7 +3993,7 @@ class PiCamera(object):
 
     def _get_annotate_text_size(self):
         self._check_camera_open()
-        if self._camera.annotate_rev == 3:
+        if self._camera.annotate_rev >= 3:
             mp = self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE]
             return mp.text_size or self.DEFAULT_ANNOTATE_SIZE
         else:
@@ -4000,7 +4003,7 @@ class PiCamera(object):
         if not (6 <= value <= 160):
             raise PiCameraValueError(
                 "Invalid annotation text size: %d (valid range 6-160)" % value)
-        if self._camera.annotate_rev == 3:
+        if self._camera.annotate_rev >= 3:
             mp = self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE]
             mp.text_size = value
             self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE] = mp
@@ -4023,7 +4026,7 @@ class PiCamera(object):
     def _get_annotate_foreground(self):
         self._check_camera_open()
         mp = self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE]
-        if self._camera.annotate_rev == 3 and mp.custom_text_color:
+        if self._camera.annotate_rev >= 3 and mp.custom_text_color:
             return Color.from_yuv_bytes(
                     mp.custom_text_Y,
                     mp.custom_text_U,
@@ -4079,7 +4082,7 @@ class PiCamera(object):
     def _get_annotate_background(self):
         self._check_camera_open()
         mp = self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE]
-        if self._camera.annotate_rev == 3:
+        if self._camera.annotate_rev >= 3:
             if mp.enable_text_background:
                 if mp.custom_background_color:
                     return Color.from_yuv_bytes(
@@ -4120,7 +4123,7 @@ class PiCamera(object):
                     "Firmware does not support setting a custom background "
                     "annotation color; using black instead"))
         mp = self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE]
-        if self._camera.annotate_rev == 3:
+        if self._camera.annotate_rev >= 3:
             if value is None:
                 mp.enable_text_background = False
             else:
@@ -4161,4 +4164,79 @@ class PiCamera(object):
             In prior versions this was a bool value with ``True`` representing
             a black background.
         """)
+    def _get_annotate_justify(self):
+        self._check_camera_open()
+        mp = self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE]
+        if self._camera.annotate_rev == 4:
+            return mp.justify
+        else:
+            return None
+    def _set_annotate_justify(self, value):
+        self._check_camera_open()
+        if self._camera.annotate_rev == 4:
+            mp = self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE]
+            mp.justify = value
+            self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE] = mp
+        else:
+            warnings.warn(
+                PiCameraFallback(
+                    "Firmware does not support setting annotation x_offset"))
+            return
+    annotate_justify = property(
+        _get_annotate_justify, _set_annotate_justify, doc="""\
+        Controls the x_offset drawn behind the annotation
+        """)
+
+    def _get_annotate_x_offset(self):
+        self._check_camera_open()
+        mp = self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE]
+        if self._camera.annotate_rev == 4:
+            return mp.x_offset
+        else:
+            return None
+    def _set_annotate_x_offset(self, value):
+        self._check_camera_open()
+        if not (0 <= value <= 1000):
+            raise PiCameraValueError(
+                "Invalid annotation text size: %d (valid range 6-160)" % value)
+        if self._camera.annotate_rev == 4:
+            mp = self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE]
+            mp.x_offset = value
+            self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE] = mp
+        else:
+            warnings.warn(
+                PiCameraFallback(
+                    "Firmware does not support setting annotation x_offset"))
+            return
+    annotate_x_offset = property(
+        _get_annotate_x_offset, _set_annotate_x_offset, doc="""\
+        Controls the x_offset drawn behind the annotation
+        """)
+
+    def _get_annotate_y_offset(self):
+        self._check_camera_open()
+        mp = self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE]
+        if self._camera.annotate_rev == 4:
+            return mp.y_offset
+        else:
+            return None
+    def _set_annotate_y_offset(self, value):
+        self._check_camera_open()
+        if not (0 <= value <= 1000):
+            raise PiCameraValueError(
+                "Invalid annotation text size: %d (valid range 6-160)" % value)
+        if self._camera.annotate_rev == 4:
+            mp = self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE]
+            mp.y_offset = value
+            self._camera.control.params[mmal.MMAL_PARAMETER_ANNOTATE] = mp
+        else:
+            warnings.warn(
+                PiCameraFallback(
+                    "Firmware does not support setting annotation x_offset"))
+            return
+    annotate_y_offset = property(
+        _get_annotate_y_offset, _set_annotate_y_offset, doc="""\
+        Controls the x_offset drawn behind the annotation
+        """)
+        
 
